@@ -1,15 +1,16 @@
 import React from "react";
 import { FaFacebookF, FaDribbble, FaInstagram, FaTwitter, FaLinkedin, FaMapMarkerAlt, FaEnvelope, FaPhone, FaClock } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import bargainBase from "../assets/bargainBase.png";
 
 const Footer = () => {
   return (
     <footer className="bg-green-950 text-white py-8 px-4 w-full">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <h2 className="text-4xl font-semibold text-white">Eko<span className="text-red-500">cart</span></h2>
+          <h2 className="text-4xl font-semibold text-white">Bargain<span className="text-red-500">Base</span></h2>
           <p className="text-md mt-2">
-            Ekocart - Multipurpose eCommerce HTML5 Template is fully responsive.
+            BargainBase - Multipurpose eCommerce HTML5 Template is fully responsive.
             Build whatever you like with the Ekocart template.
           </p>
           <div className="flex space-x-4 mt-4 text-3xl">

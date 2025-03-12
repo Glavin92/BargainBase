@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PropTypes from "prop-types";
-import logo from "../assets/logo.png";
+import bargainBase from "../assets/bargainBase.png";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaStore, FaTruck, FaRegUser } from "react-icons/fa";
 import { FiSmartphone, FiShoppingCart } from "react-icons/fi";
 import { VscSearch } from "react-icons/vsc";
@@ -89,7 +89,7 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
       <div className="bg-black text-white text-sm font-medium flex justify-between px-28 py-2">
         <div className="flex space-x-3">
           <FaStore className="text-red-500" />
-          <h1 className="px-2">Welcome to Our Store Ekocart</h1>
+          <h1 className="px-2">Welcome to Our Store BargainBase</h1>
           <FaTruck className="text-red-500" />
           <h1 className="px-2">Free Shipping Worldwide</h1>
         </div>
@@ -111,7 +111,7 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
       <div className={`w-full shadow-md bg-white ${isCartOpen ? "opacity-100" : ""}`}>
         
         <div className="flex justify-between items-center px-8 py-3">
-          <img className="h-16 pl-20" src={logo} alt="Logo" />
+          <img className="h-16 pl-20" src={bargainBase} alt="Logo" />
 
           
           <div className="flex items-center space-x-2 text-lg text-gray-600 pr-96">

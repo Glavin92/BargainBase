@@ -59,7 +59,7 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
       {/* Hero Section */}
       <div className="flex items-center justify-center bg-gray-200 h-[200px] text-center relative">
         <div className="text-center max-w-xl">
-          <p className="text-orange-500 font-semibold">Welcome to Ekocart</p>
+          <p className="text-orange-500 font-semibold">Welcome to BargainBase</p>
           <h1 className="text-5xl font-bold text-gray-800">A New Online Shop Experience</h1>
         </div>
       </div>
