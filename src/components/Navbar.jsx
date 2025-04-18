@@ -8,6 +8,7 @@ import { VscSearch } from "react-icons/vsc";
 import CartSidebar from "./CartSidebar";
 import { signOut } from "firebase/auth"; 
 import { auth } from "./firebase"; 
+import debounce from "lodash/debounce";
 
 const Dropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +74,18 @@ const ProfileDropdown = ({ user }) => {
 const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, onSearch, onCategoryChange }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchHistory, setSearchHistory] = useState([]);
+
+  // Debounced search function
+  const debouncedSearch = debounce((query) => {
+    if (query.trim()) {
+      onSearch(query.trim());
+      if (!searchHistory.includes(query)) {
+        setSearchHistory(prev => [query, ...prev].slice(0, 5));
+      }
+    }
+  }, 1000);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,6 +95,25 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+      if (!searchHistory.includes(searchQuery)) {
+        setSearchHistory(prev => [searchQuery, ...prev].slice(0, 5));
+      }
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   return (
     <div>
@@ -113,7 +145,6 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
         <div className="flex justify-between items-center px-8 py-3">
           <img className="h-16 pl-20" src={bargainBase} alt="Logo" />
 
-          
           <div className="flex items-center space-x-2 text-lg text-gray-600 pr-96">
             <FiSmartphone className="text-red-400 text-5xl font-semibold bg-white rounded p-2 shadow-sm" />
             <div>
@@ -122,49 +153,69 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex items-center space-x-2">
-            <div className="border rounded-sm w-44 border-stone-300 bg-gray-100 px-3 py-2">
-              <select
-                className="bg-transparent text-gray-600 focus:outline-none"
-                onChange={(e) => onCategoryChange(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                <option value="electronics">Electronics</option>
-                <option value="jewelery">Jewelery</option>
-                <option value="men's clothing">Men's Clothing</option>
-                <option value="women's clothing">Women's Clothing</option>
-              </select>
+          {/* Search Bar and History Container */}
+          <div className="flex flex-col items-end">
+            <div className="flex items-center space-x-2">
+              <div className="border rounded-sm w-44 border-stone-300 bg-gray-100 px-3 py-2">
+                <select
+                  className="bg-transparent text-gray-600 focus:outline-none"
+                  onChange={(e) => onCategoryChange(e.target.value)}
+                >
+                  <option value="">All Categories</option>
+                  <option value="electronics">Electronics</option>
+                  <option value="jewelery">Jewelery</option>
+                  <option value="men's clothing">Men's Clothing</option>
+                  <option value="women's clothing">Women's Clothing</option>
+                </select>
+              </div>
+              <div className="flex items-center border border-stone-300 rounded-sm bg-white w-64">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Enter Your Keyword"
+                  className="w-full px-3 py-2 focus:outline-none"
+                />
+                <button 
+                  onClick={handleSearch}
+                  className="bg-orange-600 px-4 h-10 flex items-center justify-center hover:bg-orange-700 transition-colors"
+                >
+                  <VscSearch className="text-white text-lg" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center border border-stone-300 rounded-sm bg-white w-64">
-              <input
-                type="text"
-                placeholder="Enter Your Keyword"
-                className="w-full px-3 py-2 focus:outline-none"
-                onChange={(e) => onSearch(e.target.value)}
-              />
-              <button className="bg-orange-600 px-4 h-10 flex items-center justify-center">
-                <VscSearch className="text-white text-lg" />
-              </button>
-            </div>
+
+            {/* Search History - Moved here */}
+            {searchHistory.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-2 max-w-[420px] justify-end">
+                {searchHistory.map((query, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSearchQuery(query);
+                      onSearch(query);
+                    }}
+                    className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors"
+                  >
+                    {query}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Bottom Row */}
         <div className={`flex justify-between items-center px-24 py-3 z-50 shadow-md transition-all duration-300 ${isScrolled ? "fixed top-0 left-0 w-full bg-white shadow-lg" : "relative"}`}>
-       
           <div className="flex space-x-6 text-gray-800">
             <Link to="/" className="text-blue-700">Home</Link>
             <Dropdown /> 
             <Link to="/contact" className="hover:text-blue-700">Contact</Link>
           </div>
 
-        
           <div className="flex items-center space-x-6">
-            <ProfileDropdown user={user} /> 
-      
-
-          
+            <ProfileDropdown user={user} />
             <div className="relative cursor-pointer" onClick={() => setIsCartOpen(true)}>
               <FiShoppingCart className="text-4xl bg-white rounded p-2 shadow-sm mr-2 text-primary" />
               {cartItems.length > 0 && (
@@ -189,7 +240,6 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
     </div>
   );
 };
-
 
 Navbar.propTypes = {
   cartItems: PropTypes.arrayOf(

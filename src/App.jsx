@@ -49,11 +49,22 @@ function App() {
   }, [cartItems]);
 
   const addToCart = (product) => {
-    const existingItem = cartItems.find((item) => item.id === product.id);
+    // Create a unique identifier for the product using name, price, and website
+    const productId = `${product.name}-${product.price}-${product.website}`;
+    
+    const existingItem = cartItems.find(
+      (item) => 
+        item.name === product.name && 
+        item.price === product.price && 
+        item.website === product.website
+    );
+
     if (existingItem) {
       setCartItems(
         cartItems.map((item) =>
-          item.id === product.id
+          item.name === product.name && 
+          item.price === product.price && 
+          item.website === product.website
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
@@ -63,15 +74,24 @@ function App() {
     }
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems(cartItems.filter((item) => item.id !== productId));
+  const removeFromCart = (product) => {
+    setCartItems(
+      cartItems.filter(
+        (item) => 
+          !(item.name === product.name && 
+          item.price === product.price && 
+          item.website === product.website)
+      )
+    );
   };
 
-  const decreaseQuantity = (productId) => {
+  const decreaseQuantity = (product) => {
     setCartItems(
       cartItems
         .map((item) =>
-          item.id === productId
+          item.name === product.name && 
+          item.price === product.price && 
+          item.website === product.website
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )
