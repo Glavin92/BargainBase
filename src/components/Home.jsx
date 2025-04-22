@@ -1,27 +1,106 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import axios from "axios";
-import { FaShoppingCart, FaEye, FaStar, FaRegStar, FaSpinner, FaFire } from "react-icons/fa";
-import PropTypes from "prop-types";
-
-const ITEMS_PER_PAGE = 12;
+import React, { useState, useEffect } from "react";
+import {
+  FaShoppingCart,
+  FaEye,
+  FaFire,
+  FaSpinner,
+  FaChevronDown,
+  FaChevronUp,
+  FaTimes,
+  FaStar,
+  FaRegStar,
+  FaStarHalfAlt,
+} from "react-icons/fa";
 
 const Home = ({ addToCart, searchQuery, selectedCategory }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [recommendations, setRecommendations] = useState([]);
-  const [trendingProducts, setTrendingProducts] = useState([]);
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const ITEMS_PER_PAGE = 12;
 
-  // Memoize filtered products
-  const filteredAndPaginatedProducts = useMemo(() => {
+  // Fetch products from Flask backend
+  const fetchProducts = async (query) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("http://localhost:5000/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: query || searchQuery }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Process the products to add display properties
+      const processedProducts = data.products.map((product) => ({
+        ...product,
+        showVariants: false,
+      }));
+
+      setProducts(processedProducts);
+      setTotalPages(Math.ceil(processedProducts.length / ITEMS_PER_PAGE));
+      setCurrentPage(1);
+    } catch (err) {
+      setError(err.message);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // When opening product details
+  const openProductDetail = (product) => {
+    // Set first variant as default if variants exist
+    const firstVariant = product.variants?.[0] || {};
+    const defaultProduct = {
+      ...product,
+      ...firstVariant, // This includes first variant's rating
+      currentVariant: firstVariant, // Track current variant separately
+      variants: product.variants || [], // Preserve all variants
+    };
+
+    setSelectedProduct(defaultProduct);
+    document.body.style.overflow = "hidden";
+  };
+
+  // Close product details modal
+  const closeProductDetail = () => {
+    setSelectedProduct(null);
+    document.body.style.overflow = "auto"; // Re-enable scrolling
+  };
+
+  // Trigger search when searchQuery changes
+  useEffect(() => {
+    if (searchQuery) {
+      fetchProducts(searchQuery);
+    }
+  }, [searchQuery]);
+
+  // Toggle variant visibility
+  const toggleVariants = (productId) => {
+    setExpandedProduct(expandedProduct === productId ? null : productId);
+  };
+
+  // Filter products by category
+  const filteredAndPaginatedProducts = React.useMemo(() => {
     let filtered = products;
 
     if (selectedCategory) {
-      filtered = filtered.filter((product) => 
+      filtered = filtered.filter((product) =>
         product.brand.toLowerCase().includes(selectedCategory.toLowerCase())
       );
     }
@@ -30,103 +109,42 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
     return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [products, selectedCategory, currentPage]);
 
-  // Fetch products when search query changes
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!searchQuery) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get(`http://localhost:5000/api/search?query=${searchQuery}`);
-        if (response.data.status === 'success') {
-          setProducts(response.data.products);
-          setTotalPages(Math.ceil(response.data.products.length / ITEMS_PER_PAGE));
-          setCurrentPage(1);
-        } else {
-          setError('Failed to fetch products');
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setError('Error connecting to the server');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [searchQuery]);
-
-  // Fetch recommendations when a product is selected
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (selectedProduct) {
-        try {
-          setLoadingRecommendations(true);
-          const response = await axios.get(
-            `http://localhost:5000/api/recommendations?product_name=${encodeURIComponent(selectedProduct.name)}`
-          );
-          if (response.data.status === 'success') {
-            setRecommendations(response.data.recommendations);
-          }
-        } catch (error) {
-          console.error("Error fetching recommendations:", error);
-        } finally {
-          setLoadingRecommendations(false);
-        }
-      }
-    };
-
-    fetchRecommendations();
-  }, [selectedProduct]);
-
-  // Fetch trending products
-  useEffect(() => {
-    const fetchTrending = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/trending');
-        if (response.data.status === 'success') {
-          setTrendingProducts(response.data.trending);
-        }
-      } catch (error) {
-        console.error("Error fetching trending products:", error);
-      }
-    };
-
-    fetchTrending();
-  }, []);
-
-  const openProductDetail = (product) => {
-    setSelectedProduct(product);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeProductDetail = () => {
-    setSelectedProduct(null);
-    document.body.style.overflow = 'auto';
-  };
-
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Render star rating
   const renderStars = (rating) => {
+    if (!rating || rating === "Not Rated") return null;
+
     const stars = [];
-    const fullStars = Math.floor(parseFloat(rating) || 0);
-    const hasHalfStar = (parseFloat(rating) || 0) % 1 >= 0.5;
+    const numericRating = parseFloat(rating);
+    const fullStars = Math.floor(numericRating);
+    const hasHalfStar = numericRating % 1 >= 0.5;
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        stars.push(<FaStar key={i} className="text-yellow-500" />);
+        stars.push(<FaStar key={i} className="text-yellow-500 inline" />);
       } else if (i === fullStars && hasHalfStar) {
-        stars.push(<FaStar key={i} className="text-yellow-500" />);
+        stars.push(
+          <FaStarHalfAlt key={i} className="text-yellow-500 inline" />
+        );
       } else {
-        stars.push(<FaRegStar key={i} className="text-yellow-500" />);
+        stars.push(<FaRegStar key={i} className="text-yellow-500 inline" />);
       }
     }
+
     return stars;
+  };
+
+  // When changing variants
+  const handleVariantChange = (variant) => {
+    setSelectedProduct((prev) => ({
+      ...prev,
+      ...variant,
+      currentVariant: variant,
+    }));
   };
 
   return (
@@ -135,20 +153,30 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
       <div className="relative bg-gradient-to-r from-orange-500 to-orange-600 h-[300px] flex items-center justify-center">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="text-center max-w-xl relative z-10">
-          <p className="text-white font-semibold text-lg mb-4">Welcome to BargainBase</p>
-          <h1 className="text-5xl font-bold text-white mb-6">Compare Prices Across Stores</h1>
-          <p className="text-white text-lg">Find the best deals on your favorite products</p>
+          <p className="text-white font-semibold text-lg mb-4">
+            Welcome to BargainBase
+          </p>
+          <h1 className="text-5xl font-bold text-white mb-6">
+            Compare Prices Across Stores
+          </h1>
+          <p className="text-white text-lg">
+            Find the best deals on your favorite products
+          </p>
         </div>
       </div>
 
       {/* Products Section */}
       <div className="p-8 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Featured Products</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          {searchQuery ? `Results for "${searchQuery}"` : "Featured Products"}
+        </h2>
+
         {error && (
           <div className="text-center text-red-500 mb-4 bg-red-100 p-4 rounded-lg">
             {error}
           </div>
         )}
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <FaSpinner className="animate-spin text-orange-500 text-4xl" />
@@ -158,58 +186,66 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredAndPaginatedProducts.map((product, index) => (
                 <div
-                  key={`${product.name}-${index}`}
+                  key={`${product.id || product.name}-${index}`}
                   className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
                 >
                   <div className="relative group">
-                    <div
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
-                      onClick={() => openProductDetail(product)}
+                    {/* Website Badge */}
+                    <span
+                      className={`absolute top-2 right-2 px-2 py-1 text-xs font-bold rounded ${
+                        product.available_on?.length > 1
+                          ? "bg-purple-500"
+                          : product.website?.includes("Amazon")
+                          ? "bg-blue-500"
+                          : "bg-yellow-500"
+                      } text-white`}
                     >
-                      <FaEye className="text-gray-600 hover:text-orange-500" size={20} />
-                    </div>
+                      {product.available_on?.join(" & ") || product.website}
+                    </span>
 
                     {/* Product Image */}
-                    {product.thumbnail && (
-                      <div className="h-48 flex items-center justify-center bg-gray-100">
-                        <img 
-                          src={product.thumbnail} 
+                    <div
+                      className="h-48 flex items-center justify-center bg-gray-100 cursor-pointer"
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      {product.thumbnail ? (
+                        <img
+                          src={product.thumbnail}
                           alt={product.name}
                           className="max-h-full max-w-full object-contain p-4"
                           loading="lazy"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-gray-500">No image available</div>
+                      )}
+                    </div>
 
                     <div className="p-4">
                       {/* Product Title */}
-                      <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.name}</h3>
+                      <h3
+                        className="text-lg font-semibold mb-2 line-clamp-2 cursor-pointer hover:text-orange-500"
+                        onClick={() => setSelectedProduct(product)}
+                      >
+                        {product.name}
+                      </h3>
 
                       {/* Brand */}
-                      <p className="text-sm text-gray-500 mb-2">Brand: {product.brand}</p>
+                      <p className="text-sm text-gray-500 mb-2">
+                        Brand: {product.brand}
+                      </p>
 
                       {/* Price */}
-                      <p className="text-xl font-bold text-orange-500 mb-2">{product.price}</p>
+                      <p className="text-xl font-bold text-orange-500 mb-2">
+                        {product.price_display || product.price}
+                      </p>
 
-                      {/* Rating */}
-                      <div className="flex items-center mb-2">
-                        <div className="flex mr-2">
-                          {renderStars(product.rating)}
-                        </div>
-                        <span className="text-gray-500">({product.ratings} ratings)</span>
-                      </div>
-
-                      {/* Website */}
-                      <p className="text-sm text-gray-500 mb-4">Available on: {product.website}</p>
-
-                      {/* Add to Cart Button */}
+                      {/* View Details Button */}
                       <button
-                        className="w-full bg-orange-500 p-2 rounded text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
-                        onClick={() => addToCart(product)}
-                        aria-label="Add to cart"
+                        className="w-full mt-2 border border-orange-500 text-orange-500 p-2 rounded flex items-center justify-center hover:bg-orange-50 transition-colors"
+                        onClick={() => openProductDetail(product)}
                       >
-                        <FaShoppingCart className="mr-2" />
-                        Add to Cart
+                        <FaEye className="mr-2" />
+                        View Details
                       </button>
                     </div>
                   </div>
@@ -220,234 +256,190 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8 gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded transition-colors ${
-                      currentPage === page
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-4 py-2 rounded transition-colors ${
+                        currentPage === page
+                          ? "bg-orange-500 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
               </div>
             )}
           </>
         )}
-
-        {/* Trending Products Section */}
-        {trendingProducts.length > 0 && (
-          <div className="mt-16">
-            <div className="flex items-center justify-center mb-6">
-              <FaFire className="text-orange-500 text-2xl mr-2" />
-              <h2 className="text-3xl font-bold text-gray-800">Trending Now</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {trendingProducts.map((product, index) => (
-                <div
-                  key={`${product.name}-${index}`}
-                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-                >
-                  <div className="relative group">
-                    <div
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
-                      onClick={() => openProductDetail(product)}
-                    >
-                      <FaEye className="text-gray-600 hover:text-orange-500" size={20} />
-                    </div>
-
-                    {/* Product Image */}
-                    {product.thumbnail && (
-                      <div className="h-48 flex items-center justify-center bg-gray-100">
-                        <img 
-                          src={product.thumbnail} 
-                          alt={product.name}
-                          className="max-h-full max-w-full object-contain p-4"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-4">
-                      {/* Product Title */}
-                      <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.name}</h3>
-
-                      {/* Brand */}
-                      <p className="text-sm text-gray-500 mb-2">Brand: {product.brand}</p>
-
-                      {/* Price */}
-                      <p className="text-xl font-bold text-orange-500 mb-2">{product.price}</p>
-
-                      {/* Rating */}
-                      <div className="flex items-center mb-2">
-                        <div className="flex mr-2">
-                          {renderStars(product.rating)}
-                        </div>
-                        <span className="text-gray-500">({product.ratings} ratings)</span>
-                      </div>
-
-                      {/* Website */}
-                      <p className="text-sm text-gray-500 mb-4">Available on: {product.website}</p>
-
-                      {/* Add to Cart Button */}
-                      <button
-                        className="w-full bg-orange-500 p-2 rounded text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
-                        onClick={() => addToCart(product)}
-                        aria-label="Add to cart"
-                      >
-                        <FaShoppingCart className="mr-2" />
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recommendations Section */}
-        {selectedProduct && recommendations.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-              Similar Products
-            </h2>
-            {loadingRecommendations ? (
-              <div className="flex justify-center items-center h-64">
-                <FaSpinner className="animate-spin text-orange-500 text-4xl" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {recommendations.map((product, index) => (
-                  <div
-                    key={`${product.name}-${index}`}
-                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-                  >
-                    <div className="relative group">
-                      <div
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
-                        onClick={() => openProductDetail(product)}
-                      >
-                        <FaEye className="text-gray-600 hover:text-orange-500" size={20} />
-                      </div>
-
-                      {/* Product Image */}
-                      {product.thumbnail && (
-                        <div className="h-48 flex items-center justify-center bg-gray-100">
-                          <img 
-                            src={product.thumbnail} 
-                            alt={product.name}
-                            className="max-h-full max-w-full object-contain p-4"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
-
-                      <div className="p-4">
-                        {/* Product Title */}
-                        <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.name}</h3>
-
-                        {/* Brand */}
-                        <p className="text-sm text-gray-500 mb-2">Brand: {product.brand}</p>
-
-                        {/* Price */}
-                        <p className="text-xl font-bold text-orange-500 mb-2">{product.price}</p>
-
-                        {/* Rating */}
-                        <div className="flex items-center mb-2">
-                          <div className="flex mr-2">
-                            {renderStars(product.rating)}
-                          </div>
-                          <span className="text-gray-500">({product.ratings} ratings)</span>
-                        </div>
-
-                        {/* Website */}
-                        <p className="text-sm text-gray-500 mb-4">Available on: {product.website}</p>
-
-                        {/* Add to Cart Button */}
-                        <button
-                          className="w-full bg-orange-500 p-2 rounded text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
-                          onClick={() => addToCart(product)}
-                          aria-label="Add to cart"
-                        >
-                          <FaShoppingCart className="mr-2" />
-                          Add to Cart
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Product Detail Modal */}
+      {/* Product Details Modal */}
       {selectedProduct && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-50"
-            onClick={closeProductDetail}
-          ></div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="relative p-6">
+              <button
+                onClick={() => closeProductDetail()}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={24} />
+              </button>
 
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-lg shadow-xl z-50 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Product Image */}
-              {selectedProduct.thumbnail && (
-                <div className="md:w-1/3 flex items-center justify-center bg-gray-100 rounded-lg p-4">
-                  <img 
-                    src={selectedProduct.thumbnail} 
-                    alt={selectedProduct.name}
-                    className="max-h-96 max-w-full object-contain"
-                  />
-                </div>
-              )}
-              
-              <div className="flex-grow">
-                <h2 className="text-2xl font-bold mb-4">{selectedProduct.name}</h2>
-                <p className="text-3xl font-bold text-orange-500 mb-4">{selectedProduct.price}</p>
-                <p className="text-gray-500 mb-2">Brand: {selectedProduct.brand}</p>
-                <div className="flex items-center mb-4">
-                  <div className="flex mr-2">
-                    {renderStars(selectedProduct.rating)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Product Images */}
+                <div>
+                  <div className="h-96 flex items-center justify-center bg-gray-100 mb-4 rounded-lg">
+                    <img
+                      src={
+                        selectedProduct.thumbnail ||
+                        "https://via.placeholder.com/400"
+                      }
+                      alt={selectedProduct.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
                   </div>
-                  <span className="text-gray-500">({selectedProduct.ratings} ratings)</span>
+
+                  {/* Thumbnail Gallery */}
+                  <div className="flex space-x-2 overflow-x-auto py-2">
+                    {selectedProduct.variants?.map((variant, i) => (
+                      <div
+                        key={i}
+                        className={`flex-shrink-0 w-16 h-16 border rounded cursor-pointer hover:border-orange-500 ${
+                          variant.thumbnail === selectedProduct.thumbnail
+                            ? "border-orange-500"
+                            : "border-gray-200"
+                        }`}
+                        onClick={() => handleVariantChange(variant)}
+                      >
+                        <img
+                          src={
+                            variant.thumbnail ||
+                            "https://via.placeholder.com/100"
+                          }
+                          alt="Variant"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-gray-500 mb-4">Available on: {selectedProduct.website}</p>
-                <div className="flex items-center gap-4">
-                  <button
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-                    onClick={() => {
-                      addToCart(selectedProduct);
-                      closeProductDetail();
-                    }}
-                  >
-                    Add to Cart
-                  </button>
-                  <button
-                    className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                    onClick={closeProductDetail}
-                  >
-                    Close
-                  </button>
+
+                {/* Product Details */}
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">
+                    {selectedProduct.name}
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    Brand: {selectedProduct.brand}
+                  </p>
+
+                  {/* Current Variant Rating */}
+                  <div className="flex items-center mb-2">
+                    {selectedProduct.rating &&
+                    selectedProduct.rating !== "Not Rated" ? (
+                      <>
+                        <div className="flex mr-1">
+                          {renderStars(selectedProduct.rating)}
+                        </div>
+                        <span className="text-gray-500">
+                          {selectedProduct.rating} (
+                          {selectedProduct.ratings_count || 0} ratings)
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-500">Not Rated</span>
+                    )}
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold text-orange-500">
+                      {selectedProduct.price_display || selectedProduct.price}
+                    </span>
+                    {selectedProduct.available_on?.length > 1 && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        (across {selectedProduct.available_on.length} stores)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* All Variants */}
+                  <div className="mb-6 border-t pt-4">
+                    <h3 className="font-semibold mb-3 text-lg">
+                      Available Options:
+                    </h3>
+                    <ul className="space-y-3">
+                      {selectedProduct.variants?.map((variant, i) => (
+                        <li
+                          key={i}
+                          className={`flex justify-between items-center p-3 border rounded-lg ${
+                            variant.price === selectedProduct.price
+                              ? "border-orange-300 bg-orange-50"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div>
+                            <div className="font-medium">{variant.website}</div>
+                            <div className="text-xl font-bold text-orange-500">
+                              {variant.price}
+                            </div>
+                            <div className="flex items-center mt-1">
+                              {variant.rating &&
+                              variant.rating !== "Not Rated" ? (
+                                <>
+                                  <div className="flex mr-1">
+                                    {renderStars(variant.rating)}
+                                  </div>
+                                  <span className="text-gray-500 text-sm">
+                                    {variant.rating} (
+                                    {variant.ratings_count || 0} ratings)
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-gray-500 text-sm">
+                                  Not Rated
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              addToCart({ ...selectedProduct, ...variant });
+                            }}
+                            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                          >
+                            <FaShoppingCart />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Product Description */}
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="font-semibold mb-3 text-lg">
+                      Product Details
+                    </h3>
+                    <div className="text-gray-600 space-y-2">
+                      <p>
+                        Compare prices across multiple stores to get the best
+                        deal.
+                      </p>
+                      <p>All options are verified and updated regularly.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
-};
-
-Home.propTypes = {
-  addToCart: PropTypes.func.isRequired,
-  searchQuery: PropTypes.string,
-  selectedCategory: PropTypes.string,
 };
 
 export default Home;
