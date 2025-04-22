@@ -5,9 +5,7 @@ import { FaTimes, FaMinus, FaPlus, FaTrash } from "react-icons/fa";
 
 const CartSidebar = ({ isOpen, onClose, cartItems, removeFromCart, decreaseQuantity, addToCart }) => {
   const totalPrice = cartItems.reduce((total, item) => {
-    // Extract numeric value from price string (e.g., "₹12,999" -> 12999)
-    const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
-    return total + (price * item.quantity);
+    return total + (item.price * item.quantity); // Directly use the number
   }, 0);
 
   return (
@@ -23,9 +21,8 @@ const CartSidebar = ({ isOpen, onClose, cartItems, removeFromCart, decreaseQuant
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 w-96 h-full bg-white shadow-xl transform ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        } transition-transform duration-300 z-50 flex flex-col`}
+        className={`fixed top-0 right-0 w-96 h-full bg-white shadow-xl transform ${isOpen ? "translate-x-0" : "translate-x-full"
+          } transition-transform duration-300 z-50 flex flex-col`}
       >
         {/* Header */}
         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
