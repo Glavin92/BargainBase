@@ -11,7 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 # Setup WebDriver
-def setup_driver(headless=False):
+def setup_driver(headless=True):
     options = webdriver.EdgeOptions()
     options.use_chromium = True
     options.add_argument("--disable-blink-features=AutomationControlled")

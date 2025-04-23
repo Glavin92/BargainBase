@@ -5,7 +5,7 @@ import ast
 import random
 
 # Load your data
-df = pd.read_csv("amazon_flipkart_products.csv")
+df = pd.read_csv("C:/sem6-mini-project/amazon_flipkart_products.csv")
 
 # Convert variants from string to list of dictionaries
 df['variants'] = df['variants'].apply(ast.literal_eval)
@@ -79,10 +79,19 @@ def collaborative_filtering_recommendations(ratings_df, product_df, target_user_
     # Get top recommendations
     top_recommendations = recommendations.sort_values(ascending=False).head(top_n).index.tolist()
     
-    # Return product details
-    return product_df[product_df['id'].isin(top_recommendations)][[
-        'id', 'name', 'brand', 'price_display', 'avg_rating', 'thumbnail'
+    # Return product details with website information
+    recommended_products = product_df[product_df['id'].isin(top_recommendations)].copy()
+    
+    # Extract website from variants
+    recommended_products['website'] = recommended_products['variants'].apply(
+        lambda x: x[0]['website'] if x and len(x) > 0 else None
+    )
+    
+    return recommended_products[[
+        'id', 'name', 'brand', 'price_display', 'avg_rating', 'thumbnail', 'website'
     ]].drop_duplicates()
+    
+   
 
 def content_based_recommendations(product_df, product_id, n=5):
     """
@@ -106,7 +115,8 @@ def content_based_recommendations(product_df, product_id, n=5):
         product_df['name'] + " " + 
         product_df['brand'] + " " + 
         product_df['price_display'].astype(str) + " " +
-        product_df['variants'].apply(lambda x: str(x[0]['rating']) if x and len(x) > 0 else "")
+        product_df['avg_rating'].astype(str) + " " +
+        product_df['variants'].apply(lambda x: " ".join([v['color'] for v in x if 'color' in v]) if x else "")
     )
 
     # Vectorize features
@@ -125,8 +135,11 @@ def content_based_recommendations(product_df, product_id, n=5):
     # Return results
     recommendations = product_df.iloc[product_indices].copy()
     recommendations['similarity_score'] = [i[1] for i in sim_scores]
+    recommendations['website'] = recommendations['variants'].apply(
+        lambda x: x[0]['website'] if x and len(x) > 0 else None
+    )
     
-    return recommendations[['id', 'name', 'brand', 'price_display', 'avg_rating', 'similarity_score', 'thumbnail']]
+    return recommendations[['id', 'name', 'brand', 'price_display', 'avg_rating', 'similarity_score', 'thumbnail', 'website']]
 
 def hybrid_recommendations(product_df, ratings_df, product_id=None, user_id=None, top_n=10):
     """
@@ -166,11 +179,11 @@ def hybrid_recommendations(product_df, ratings_df, product_id=None, user_id=None
     return hybrid_rec.head(top_n)
 
 # Example usage
-print("\nContent-based recommendations for 'men-regula-cyphus':")
-print(content_based_recommendations(df, 'men-regula-cyphus'))
+print("\nContent-based recommendations for 'mens-i-and-bata':")
+print(content_based_recommendations(df, 'mens-i-and-bata'))
 
 print("\nCollaborative recommendations for user_5:")
 print(collaborative_filtering_recommendations(ratings_df, df, 'user_5'))
 
-print("\nHybrid recommendations for user_10 viewing 'men-regula-cyphus':")
-print(hybrid_recommendations(df, ratings_df, product_id="men-regula-cyphus", user_id='user_10'))
+print("\nHybrid recommendations for user_10 viewing 'mens-i-and-bata':")
+print(hybrid_recommendations(df, ratings_df, product_id="mens-i-and-bata", user_id='user_10'))
