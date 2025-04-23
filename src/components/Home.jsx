@@ -41,6 +41,7 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
       }
 
       const data = await response.json();
+      console.log(data);
       if (data.error) {
         throw new Error(data.error);
       }
@@ -62,19 +63,71 @@ const Home = ({ addToCart, searchQuery, selectedCategory }) => {
     }
   };
 
-  // When opening product details
-  const openProductDetail = (product) => {
-    // Set first variant as default if variants exist
-    const firstVariant = product.variants?.[0] || {};
-    const defaultProduct = {
-      ...product,
-      ...firstVariant, // This includes first variant's rating
-      currentVariant: firstVariant, // Track current variant separately
-      variants: product.variants || [], // Preserve all variants
-    };
+  const fetchProductDetails = async (variantLinks) => {
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/product_details",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ links: variantLinks }),
+        }
+      );
 
-    setSelectedProduct(defaultProduct);
-    document.body.style.overflow = "hidden";
+      if (!response.ok) {
+        console.log(response)
+        throw new Error("Failed to fetch variant details");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching variant details:", error);
+      return null;
+    }
+  };
+
+  // When opening product details
+  const openProductDetail = async (product) => {
+    try {
+      setLoading(true);
+
+      // Extract all variant links
+      const variantLinks = product.variants.map((v) => v.link);
+
+      // Fetch details for all variants in parallel
+      const variantDetails = await fetchProductDetails(variantLinks);
+
+      // Merge the details with existing variants
+      const updatedVariants = product.variants.map((variant, index) => ({
+        ...variant,
+        ...(variantDetails?.results[index] || {}), // Merge any new details
+      }));
+
+      const defaultProduct = {
+        ...product,
+        ...updatedVariants[0], // Use first variant as default
+        currentVariant: updatedVariants[0],
+        variants: updatedVariants,
+      };
+
+      setSelectedProduct(defaultProduct);
+      document.body.style.overflow = "hidden";
+    } catch (error) {
+      console.error("Error opening product details:", error);
+      // Fallback to original data if API fails
+      const firstVariant = product.variants?.[0] || {};
+      setSelectedProduct({
+        ...product,
+        ...firstVariant,
+        currentVariant: firstVariant,
+        variants: product.variants || [],
+      });
+      document.body.style.overflow = "hidden";
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Close product details modal
