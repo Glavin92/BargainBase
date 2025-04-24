@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import bargainBase from "../assets/bargainBase.png";
-import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaStore, FaTruck, FaRegUser } from "react-icons/fa";
+import {
+  FaFacebook,
+  FaTwitter,
+  FaLinkedin,
+  FaInstagram,
+  FaStore,
+  FaTruck,
+  FaRegUser,
+  FaChevronDown,
+} from "react-icons/fa";
 import { FiSmartphone, FiShoppingCart } from "react-icons/fi";
 import { VscSearch } from "react-icons/vsc";
 import CartSidebar from "./CartSidebar";
-import { signOut } from "firebase/auth"; 
-import { auth } from "./firebase"; 
+import { signOut } from "firebase/auth";
+import { auth } from "./firebase";
 import debounce from "lodash/debounce";
 
 const Dropdown = () => {
@@ -16,18 +25,33 @@ const Dropdown = () => {
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <button
-        onClick={toggleDropdown}
-        className="hover:text-blue-700 focus:outline-none"
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        className="flex items-center hover:text-orange-600 transition-colors"
       >
-        Pages
+        Pages <FaChevronDown className="ml-1 text-xs" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+        <div
+          className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+          onMouseEnter={() => setIsOpen(true)}
+          onMouseLeave={() => setIsOpen(false)}
+        >
           <div className="py-1">
-            <Link to="/about" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">About Us</Link>
-            <Link to="/faq" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">FAQ</Link>
+            <Link
+              to="/about"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+            >
+              About Us
+            </Link>
+            <Link
+              to="/faq"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+            >
+              FAQ
+            </Link>
           </div>
         </div>
       )}
@@ -41,27 +65,37 @@ const ProfileDropdown = ({ user }) => {
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <button
-        onClick={toggleDropdown}
-        className="hover:text-blue-700 focus:outline-none"
+        onClick={() => setIsOpen(!isOpen)}
+        className="hover:text-orange-600 focus:outline-none"
       >
-        <FaRegUser className="text-xl text-gray-700 hover:text-orange-600 cursor-pointer" />
+        <FaRegUser className="text-xl text-gray-700 hover:text-orange-600 transition-colors" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1">
             {user ? (
               <button
                 onClick={() => signOut(auth)}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
               >
                 Sign Out
               </button>
             ) : (
               <>
-                <Link to="/signin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign In</Link>
-                <Link to="/signup" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign Up</Link>
+                <Link
+                  to="/signin"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                >
+                  Sign Up
+                </Link>
               </>
             )}
           </div>
@@ -71,18 +105,31 @@ const ProfileDropdown = ({ user }) => {
   );
 };
 
-const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, onSearch, onCategoryChange }) => {
+ProfileDropdown.propTypes = {
+  user: PropTypes.object,
+};
+
+const Navbar = ({
+  cartItems,
+  removeFromCart,
+  decreaseQuantity,
+  addToCart,
+  user,
+  onSearch,
+  onCategoryChange,
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState([]);
+  const navigate = useNavigate();
 
   // Debounced search function
   const debouncedSearch = debounce((query) => {
     if (query.trim()) {
       onSearch(query.trim());
       if (!searchHistory.includes(query)) {
-        setSearchHistory(prev => [query, ...prev].slice(0, 5));
+        setSearchHistory((prev) => [query, ...prev].slice(0, 5));
       }
     }
   }, 1000);
@@ -100,129 +147,152 @@ const Navbar = ({ cartItems, removeFromCart, decreaseQuantity, addToCart, user, 
     setSearchQuery(e.target.value);
   };
 
+  const handleSearchInputClick = () => {
+    navigate("/search");
+  };
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      onSearch(searchQuery.trim());
       if (!searchHistory.includes(searchQuery)) {
-        setSearchHistory(prev => [searchQuery, ...prev].slice(0, 5));
+        setSearchHistory((prev) => [searchQuery, ...prev].slice(0, 5));
       }
+      onSearch(searchQuery.trim()); // Call the search callback if needed
+    } else {
+      navigate("/search"); // Navigate even if empty query
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
 
+  const handleLogoClick = () => {
+    e.preventDefault(); // Prevent default link behavior
+    setSearchQuery(""); // Clear the search query
+    onSearch(""); // Clear any active search results
+    navigate("/"); // Navigate to home
+  };
+
   return (
-    <div>
+    <div className="sticky top-0 z-50">
       {/* Top Banner */}
-      <div className="bg-black text-white text-sm font-medium flex justify-between px-28 py-2">
-        <div className="flex space-x-3">
-          <FaStore className="text-red-500" />
-          <h1 className="px-2">Welcome to Our Store BargainBase</h1>
-          <FaTruck className="text-red-500" />
-          <h1 className="px-2">Free Shipping Worldwide</h1>
+      <div className="bg-orange-600 text-white text-sm font-medium flex justify-center px-4 py-2 space-x-6">
+        <div className="flex items-center space-x-2">
+          <FaStore />
+          <span>Welcome to BargainBase</span>
         </div>
-        <div className="flex items-center space-x-3">
-          <select className="border-none font-semibold rounded bg-black text-white">
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
-            <option value="fr">Français</option>
-            <option value="it">Italiano</option>
-          </select>
-          <FaFacebook />
-          <FaTwitter />
-          <FaLinkedin />
-          <FaInstagram />
+        <div className="flex items-center space-x-2">
+          <FaTruck />
+          <span>Free Shipping Worldwide</span>
+        </div>
+        <div className="hidden md:flex items-center space-x-4 ml-6">
+          <a href="#" className="hover:text-orange-200 transition-colors">
+            <FaFacebook />
+          </a>
+          <a href="#" className="hover:text-orange-200 transition-colors">
+            <FaTwitter />
+          </a>
+          <a href="#" className="hover:text-orange-200 transition-colors">
+            <FaLinkedin />
+          </a>
+          <a href="#" className="hover:text-orange-200 transition-colors">
+            <FaInstagram />
+          </a>
         </div>
       </div>
 
       {/* Main Navbar */}
-      <div className={`w-full shadow-md bg-white ${isCartOpen ? "opacity-100" : ""}`}>
-        
-        <div className="flex justify-between items-center px-8 py-3">
-          <img className="h-16 pl-20" src={bargainBase} alt="Logo" />
+      <div
+        className={`w-full bg-white shadow-sm ${
+          isCartOpen ? "opacity-100" : ""
+        }`}
+      >
+        <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center">
+          <Link to="/" onClick={handleLogoClick} className="mb-4 md:mb-0">
+            <img className="h-16" src={bargainBase} alt="BargainBase Logo" />
+          </Link>
 
-          <div className="flex items-center space-x-2 text-lg text-gray-600 pr-96">
-            <FiSmartphone className="text-red-400 text-5xl font-semibold bg-white rounded p-2 shadow-sm" />
-            <div>
-              <p className="text-lg">Call Us</p>
-              <p className="font-semibold text-stone-400">+91-234-567-8900</p>
-            </div>
-          </div>
-
-          {/* Search Bar and History Container */}
-          <div className="flex flex-col items-end">
-            <div className="flex items-center space-x-2">
-              <div className="border rounded-sm w-44 border-stone-300 bg-gray-100 px-3 py-2">
-                <select
-                  className="bg-transparent text-gray-600 focus:outline-none"
-                  onChange={(e) => onCategoryChange(e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  <option value="electronics">Electronics</option>
-                  <option value="jewelery">Jewelery</option>
-                  <option value="men's clothing">Men's Clothing</option>
-                  <option value="women's clothing">Women's Clothing</option>
-                </select>
-              </div>
-              <div className="flex items-center border border-stone-300 rounded-sm bg-white w-64">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Enter Your Keyword"
-                  className="w-full px-3 py-2 focus:outline-none"
-                />
-                <button 
-                  onClick={handleSearch}
-                  className="bg-orange-600 px-4 h-10 flex items-center justify-center hover:bg-orange-700 transition-colors"
-                >
-                  <VscSearch className="text-white text-lg" />
-                </button>
-              </div>
+          {/* Search Bar */}
+          <div className="w-full md:w-1/2 lg:w-1/3 relative mb-4 md:mb-0">
+            <div className="flex items-center border-2 border-orange-500 rounded-lg overflow-hidden">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyPress={handleKeyPress}
+                onClick={handleSearchInputClick}
+                placeholder="Search for products..."
+                className="w-full px-4 py-2.5 focus:outline-none"
+              />
+              <button
+                onClick={handleSearch}
+                className="bg-orange-600 px-4 h-12 flex items-center justify-center hover:bg-orange-700 transition-colors"
+              >
+                <VscSearch className="text-white text-xl" />
+              </button>
             </div>
 
-            {/* Search History - Moved here */}
+            {/* Search History */}
             {searchHistory.length > 0 && (
-              <div className="flex gap-2 flex-wrap mt-2 max-w-[420px] justify-end">
+              <div className="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded-b-lg z-50">
                 {searchHistory.map((query, index) => (
-                  <button
+                  <div
                     key={index}
                     onClick={() => {
                       setSearchQuery(query);
                       onSearch(query);
                     }}
-                    className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors"
+                    className="px-4 py-2 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                   >
                     {query}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Bottom Row */}
-        <div className={`flex justify-between items-center px-24 py-3 z-50 shadow-md transition-all duration-300 ${isScrolled ? "fixed top-0 left-0 w-full bg-white shadow-lg" : "relative"}`}>
-          <div className="flex space-x-6 text-gray-800">
-            <Link to="/" className="text-blue-700">Home</Link>
-            <Dropdown /> 
-            <Link to="/contact" className="hover:text-blue-700">Contact</Link>
-          </div>
-
+          {/* User and Cart */}
           <div className="flex items-center space-x-6">
             <ProfileDropdown user={user} />
-            <div className="relative cursor-pointer" onClick={() => setIsCartOpen(true)}>
-              <FiShoppingCart className="text-4xl bg-white rounded p-2 shadow-sm mr-2 text-primary" />
+            <div
+              className="relative cursor-pointer"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <FiShoppingCart className="text-2xl text-gray-700 hover:text-orange-600 transition-colors" />
               {cartItems.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 -right-2 bg-orange-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItems.length}
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Links */}
+        <div
+          className={`w-full h-10 border-t border-gray-100 ${
+            isScrolled
+              ? "fixed top-31 left-0 right-0 bg-white shadow-md z-40"
+              : "relative"
+          }`}
+        >
+          <div className="container mx-auto">
+            <div className="flex justify-center space-x-8">
+              <Link
+                to="/"
+                className="text-gray-700 hover:text-orange-600 transition-colors font-medium"
+              >
+                Home
+              </Link>
+              <Dropdown />
+              <Link
+                to="/contact"
+                className="text-gray-700 hover:text-orange-600 transition-colors font-medium"
+              >
+                Contact
+              </Link>
             </div>
           </div>
         </div>
@@ -253,9 +323,9 @@ Navbar.propTypes = {
   removeFromCart: PropTypes.func.isRequired,
   decreaseQuantity: PropTypes.func.isRequired,
   addToCart: PropTypes.func.isRequired,
-  user: PropTypes.object, 
-  onSearch: PropTypes.func.isRequired, 
-  onCategoryChange: PropTypes.func.isRequired, 
+  user: PropTypes.object,
+  onSearch: PropTypes.func.isRequired,
+  onCategoryChange: PropTypes.func.isRequired,
 };
 
 export default Navbar;

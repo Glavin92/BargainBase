@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-
+from datetime import datetime
 # Setup WebDriver
 def setup_driver(headless=False):
     options = webdriver.EdgeOptions()
@@ -282,83 +282,116 @@ def flipkart_rating(url):
 
 # Remove duplicate products based on name and price
 def merge_products(products):
+    """
+    Merge duplicate products from different sources while preserving all variants
+    
+    Args:
+        products: List of product dictionaries with fields:
+            - id
+            - name
+            - brand
+            - price_display
+            - best_price
+            - avg_rating
+            - thumbnail
+            - available_on
+            - variants
+    
+    Returns:
+        List of merged product dictionaries
+    """
     merged = {}
     
     for product in products:
-        # Create a unique key based on name, brand, and website
+        # Create a unique key based on name and brand
         key = (product['name'].lower().strip(), 
-               product['brand'].lower().strip(), 
-               product['website'])
+               product['brand'].lower().strip())
         
         if key in merged:
-            # Duplicate found on same website
+            # Existing product found - merge the variants
             existing = merged[key]
             
-            # Handle price comparison
-            if product['price'] != "Not Available" and existing['price'] != "Not Available":
-                # Extract numerical prices
+            # Update price_display to show the best price
+            if product['price_display'] != "Not Available" and existing['price_display'] != "Not Available":
                 try:
-                    current_price = float(product['price'].replace('₹', '').replace(',', ''))
-                    existing_price = float(existing['price'].replace('₹', '').replace(',', ''))
+                    current_price = float(product['price_display'].replace('₹', '').replace(',', ''))
+                    existing_price = float(existing['price_display'].replace('₹', '').replace(',', ''))
                     
-                    # Keep the lower price for same website duplicates
                     if current_price < existing_price:
-                        existing['price'] = product['price']
-                        print(f"Updated price for {product['name']} on {product['website']} to lower price: {product['price']}")
+                        existing['price_display'] = product['price_display']
+                        existing['best_price'] = min(existing.get('best_price', float('inf')), current_price)
                 except ValueError:
                     pass
             
-            # Keep the version with better rating if available
-            if product['rating'] != "Not Rated" and existing['rating'] == "Not Rated":
-                existing['rating'] = product['rating']
-                existing['ratings'] = product['ratings']
+            # Update best_price if current product has a better price
+            if 'best_price' in product and isinstance(product['best_price'], (int, float)):
+                existing_best = existing.get('best_price', float('inf'))
+                if product['best_price'] < existing_best:
+                    existing['best_price'] = product['best_price']
             
-            # Keep the version with thumbnail if current doesn't have one
+            # Keep the higher rating if available
+            if product['avg_rating'] != "Not Rated":
+                if existing['avg_rating'] == "Not Rated" or float(product['avg_rating']) > float(existing['avg_rating']):
+                    existing['avg_rating'] = product['avg_rating']
+            
+            # Keep the thumbnail if current doesn't have one
             if not existing['thumbnail'] and product['thumbnail']:
                 existing['thumbnail'] = product['thumbnail']
+            
+            # Merge available_on lists
+            if isinstance(product.get('available_on'), list):
+                existing['available_on'] = list(set(existing.get('available_on', []) + product['available_on']))
+            
+            # Merge variants while avoiding duplicates
+            if isinstance(product.get('variants'), list):
+                existing_variants = existing.get('variants', [])
+                new_variants = []
+                
+                # Create a set of existing variant keys (website+price)
+                existing_keys = {(v.get('website'), v.get('price_display')) for v in existing_variants}
+                
+                for variant in product['variants']:
+                    variant_key = (variant.get('website'), variant.get('price_display'))
+                    if variant_key not in existing_keys:
+                        new_variants.append(variant)
+                
+                existing['variants'].extend(new_variants)
         else:
             # New product, add to dictionary
             merged[key] = product.copy()
+            
+            # Ensure variants is a list
+            if not isinstance(merged[key].get('variants'), list):
+                merged[key]['variants'] = []
+            
+            # Ensure available_on is a list
+            if not isinstance(merged[key].get('available_on'), list):
+                if 'website' in merged[key]:
+                    merged[key]['available_on'] = [merged[key]['website']]
+                else:
+                    merged[key]['available_on'] = []
     
-    # Now handle cross-website duplicates (Amazon vs Flipkart)
-    final_products = []
-    product_map = {}
+    # Convert the merged dictionary back to a list
+    final_products = list(merged.values())
     
-    for product in merged.values():
-        # Key without website for cross-site comparison
-        cross_key = (product['name'].lower().strip(), 
-                    product['brand'].lower().strip())
+    # Post-processing to ensure consistent fields
+    for product in final_products:
+        # Set default best_price if not set
+        if 'best_price' not in product or not isinstance(product['best_price'], (int, float)):
+            try:
+                if product['price_display'] != "Not Available":
+                    product['best_price'] = float(product['price_display'].replace('₹', '').replace(',', ''))
+                else:
+                    product['best_price'] = float('inf')
+            except:
+                product['best_price'] = float('inf')
         
-        if cross_key in product_map:
-            # Product exists on other website
-            existing = product_map[cross_key]
-            
-            # Keep the lower price across websites
-            if product['price'] != "Not Available" and existing['price'] != "Not Available":
-                try:
-                    current_price = float(product['price'].replace('₹', '').replace(',', ''))
-                    existing_price = float(existing['price'].replace('₹', '').replace(',', ''))
-                    
-                    if current_price < existing_price:
-                        existing['price'] = product['price']
-                        existing['website'] = f"{existing['website']} & {product['website']}"
-                        print(f"Found better price for {product['name']} on {product['website']}")
-                    else:
-                        existing['website'] = f"{existing['website']} & {product['website']}"
-                except ValueError:
-                    pass
-            
-            # Merge other attributes
-            if product['rating'] != "Not Rated" and existing['rating'] == "Not Rated":
-                existing['rating'] = product['rating']
-                existing['ratings'] = product['ratings']
-            
-            if not existing['thumbnail'] and product['thumbnail']:
-                existing['thumbnail'] = product['thumbnail']
-        else:
-            # New product for final list
-            product_map[cross_key] = product.copy()
-            final_products.append(product)
+        # Ensure variants have all required fields
+        for variant in product.get('variants', []):
+            if 'website' not in variant:
+                variant['website'] = product.get('website', 'Unknown')
+            if 'price_display' not in variant:
+                variant['price_display'] = product.get('price_display', 'Not Available')
     
     return final_products
 
@@ -367,8 +400,11 @@ def save_to_csv(products, filename="amazon_flipkart_products.csv"):
     # Prepare the fieldnames for the CSV
     fieldnames = [
         'id', 'name', 'brand', 'price_display', 'best_price', 
-        'avg_rating', 'thumbnail', 'available_on', 'variants'
+        'avg_rating', 'thumbnail', 'available_on', 'variants',
+        'last_updated'
     ]
+
+    products = merge_products(products)
     
     # Convert the products to a CSV-friendly format
     rows = []
@@ -381,18 +417,59 @@ def save_to_csv(products, filename="amazon_flipkart_products.csv"):
             'best_price': product.get('best_price', ''),
             'avg_rating': product.get('avg_rating', ''),
             'thumbnail': product.get('thumbnail', ''),
-            'available_on': '|'.join(product.get('available_on', [])),  # Convert list to string
-            'variants': str(product.get('variants', []))  # Convert list to string
+            'available_on': '|'.join(product.get('available_on', []) if isinstance(product.get('available_on', []), list) else product.get('available_on', '')),
+            'variants': str(product.get('variants', [])),
+            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         rows.append(row)
     
+    # Remove duplicates before writing
+    rows = remove_duplicates(rows, filename)
+    
     # Write to CSV
-    with open(filename, mode="w", newline="", encoding="utf-8") as file:
+    with open(filename, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
+        if file.tell() == 0:  # Write header only if file is empty
+            writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\n✅ Data saved to '{filename}' with {len(rows)} grouped products.")
+    print(f"\n✅ Data saved to '{filename}' with {len(rows)} products (after deduplication).")
+
+def remove_duplicates(new_rows, filename):
+    """Remove exact duplicates from new rows and existing CSV data"""
+    try:
+        # Load existing data if file exists
+        existing_rows = []
+        if os.path.exists(filename):
+            with open(filename, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                existing_rows = list(reader)
+        
+        # Combine existing and new rows
+        all_rows = existing_rows + new_rows
+        
+        # Create a set of unique row tuples (excluding last_updated)
+        seen = set()
+        deduplicated = []
+        
+        for row in all_rows:
+            # Create a tuple of all values except last_updated for comparison
+            row_key = tuple(str(row[field]) for field in row.keys() 
+                          if field != 'last_updated')
+            
+            if row_key not in seen:
+                seen.add(row_key)
+                # Keep the most recent version (with updated timestamp)
+                deduplicated.append(row)
+        
+        # Return only the new rows that weren't duplicates
+        return [row for row in new_rows 
+               if tuple(str(row[field]) for field in row.keys() 
+                       if field != 'last_updated') in seen]
+    
+    except Exception as e:
+        print(f"Error during deduplication: {str(e)}")
+        return new_rows  # Return original if error occurs
 
 def merge_products_for_display(products):
     # First group products by normalized name and brand
@@ -413,7 +490,7 @@ def merge_products_for_display(products):
                 'all_prices': [],
                 'websites': set(),
                 'ratings': [],
-                'thumbnails': []
+                'thumbnails': [],
             }
         
         # Add this product as a variant

@@ -1,0 +1,277 @@
+[
+  {
+    "user_id": "user_1",
+    "product_id": "bigplayer--unknown-brand",
+    "rating": 4.4
+  },
+  {
+    "user_id": "guest_user",
+    "product_id": "bigplayer--unknown-brand",
+    "rating": 4.4
+  },
+  {
+    "user_id": "user_1",
+    "product_id": "ragzo-form-unknown-brand",
+    "rating": 3.1
+  },
+  {
+    "user_id": "user_2",
+    "product_id": "frostbite--abros",
+    "rating": 4.4
+  },
+  {
+    "user_id": "user_2",
+    "product_id": "peter-engl-unknown-brand",
+    "rating": 3.5
+  },
+  {
+    "user_id": "user_2",
+    "product_id": "raymond-me-unknown-brand",
+    "rating": 4.1
+  },
+  {
+    "user_id": "user_2",
+    "product_id": "pack-of-2--k.k-garment",
+    "rating": 4.0
+  },
+  {
+    "user_id": "user_3",
+    "product_id": "women-regu-perfette-wollo",
+    "rating": 3.3
+  },
+  {
+    "user_id": "user_4",
+    "product_id": "white-high-aeonik",
+    "rating": 3.2
+  },
+  {
+    "user_id": "user_4",
+    "product_id": "regular-tr-lymio",
+    "rating": 3.2
+  },
+  {
+    "user_id": "user_4",
+    "product_id": "men-regula-combraided",
+    "rating": 4.2
+  },
+  {
+    "user_id": "user_5",
+    "product_id": "21.65-l-ba-skybags",
+    "rating": 3.4
+  },
+  {
+    "user_id": "user_6",
+    "product_id": "eva-lite-s-bruton",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_6",
+    "product_id": "lymio-men--unknown-brand",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_7",
+    "product_id": "men's-regu-pepe-jeans",
+    "rating": 4.1
+  },
+  {
+    "user_id": "user_7",
+    "product_id": "casual-col-labbin",
+    "rating": 4.6
+  },
+  {
+    "user_id": "user_7",
+    "product_id": "men's-snea-bacca-bucci",
+    "rating": 4.4
+  },
+  {
+    "user_id": "user_8",
+    "product_id": "radium-4-s-airson",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_9",
+    "product_id": "men-slim-f-raymond",
+    "rating": 4.0
+  },
+  {
+    "user_id": "user_9",
+    "product_id": "men's-ener-bacca-bucci",
+    "rating": 3.3
+  },
+  {
+    "user_id": "user_9",
+    "product_id": "peter-engl-unknown-brand",
+    "rating": 5.0
+  },
+  {
+    "user_id": "user_9",
+    "product_id": "im26-men's-jockey",
+    "rating": 3.8
+  },
+  {
+    "user_id": "user_10",
+    "product_id": "pack-of-2--flicfol",
+    "rating": 3.4
+  },
+  {
+    "user_id": "user_10",
+    "product_id": "mens-3392--centrino",
+    "rating": 5.0
+  },
+  {
+    "user_id": "user_11",
+    "product_id": "men's-spor-reebok",
+    "rating": 3.4
+  },
+  {
+    "user_id": "user_12",
+    "product_id": "large-35-l-hinex-bag",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_12",
+    "product_id": "men-slim-f-vtexx",
+    "rating": 3.5
+  },
+  {
+    "user_id": "user_12",
+    "product_id": "032-latest-goldstar",
+    "rating": 4.0
+  },
+  {
+    "user_id": "user_12",
+    "product_id": "majestic-m-unknown-brand",
+    "rating": 3.5
+  },
+  {
+    "user_id": "user_13",
+    "product_id": "trendy-spo-bruton",
+    "rating": 3.6
+  },
+  {
+    "user_id": "user_13",
+    "product_id": "majestic-m-unknown-brand",
+    "rating": 3.5
+  },
+  {
+    "user_id": "user_13",
+    "product_id": "mens-runcr-adidas",
+    "rating": 4.6
+  },
+  {
+    "user_id": "user_13",
+    "product_id": "men's-x-ul-salomon",
+    "rating": 4.4
+  },
+  {
+    "user_id": "user_13",
+    "product_id": "men's-spor-asian",
+    "rating": 3.8
+  },
+  {
+    "user_id": "user_14",
+    "product_id": "sneakers-f-arivo",
+    "rating": 4.2
+  },
+  {
+    "user_id": "user_15",
+    "product_id": "tread-basi-neeman's",
+    "rating": 3.1
+  },
+  {
+    "user_id": "user_15",
+    "product_id": "casual-col-labbin",
+    "rating": 4.2
+  },
+  {
+    "user_id": "user_16",
+    "product_id": "men's-regu-toplot",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_16",
+    "product_id": "large-35-l-bluejay",
+    "rating": 3.0
+  },
+  {
+    "user_id": "user_16",
+    "product_id": "large-35-l-markway",
+    "rating": 3.3
+  },
+  {
+    "user_id": "user_17",
+    "product_id": "refresh-pr-campus",
+    "rating": 3.3
+  },
+  {
+    "user_id": "user_17",
+    "product_id": "men-slim-f-snitch",
+    "rating": 3.6
+  },
+  {
+    "user_id": "user_18",
+    "product_id": "etpu-athle-red-tape",
+    "rating": 3.0
+  },
+  {
+    "user_id": "user_18",
+    "product_id": "sneakers-f-foxxy",
+    "rating": 4.5
+  },
+  {
+    "user_id": "user_18",
+    "product_id": "men-regula-streetvibes",
+    "rating": 3.6
+  },
+  {
+    "user_id": "user_18",
+    "product_id": "mens-dash--bata",
+    "rating": 4.5
+  },
+  {
+    "user_id": "user_18",
+    "product_id": "men's-prem-smowkly",
+    "rating": 3.0
+  },
+  {
+    "user_id": "user_19",
+    "product_id": "fur-jaden--unknown-brand",
+    "rating": 4.8
+  },
+  {
+    "user_id": "user_19",
+    "product_id": "women\u2019s-tr-unknown-brand",
+    "rating": 4.9
+  },
+  {
+    "user_id": "user_19",
+    "product_id": "cupid-woma-unknown-brand",
+    "rating": 4.2
+  },
+  {
+    "user_id": "user_20",
+    "product_id": "track-pant-wewok",
+    "rating": 3.9
+  },
+  {
+    "user_id": "user_20",
+    "product_id": "nile-on-ru-abros",
+    "rating": 4.5
+  },
+  {
+    "user_id": "user_20",
+    "product_id": "casual-sne-asian",
+    "rating": 3.5
+  },
+  {
+    "user_id": "user_20",
+    "product_id": "eva-lite-s-bruton",
+    "rating": 3.8
+  },
+  {
+    "user_id": "user_20",
+    "product_id": "palay-casu-unknown-brand",
+    "rating": 4.3
+  }
+]
