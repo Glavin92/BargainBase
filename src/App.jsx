@@ -15,6 +15,8 @@ import SignIn from "./components/SignIn";
 import SignUp from "./components/SignUp";
 import CartPage from "./components/CartPage";
 import Checkout from "./components/Checkout";
+import SearchPage from "./components/SearchPage";
+import Backup from "./components/backup";
 import { auth } from "./components/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -50,20 +52,23 @@ function App() {
 
   const addToCart = (product) => {
     // Create a unique identifier for the product using name, price, and website
-    const productId = `${product.name}-${product.price}-${product.website}`;
-    
+    const productId = `${product.name}-${product.price.replace(/₹/g, "")}-${
+      product.website
+    }`;
+    console.log(productId);
+
     const existingItem = cartItems.find(
-      (item) => 
-        item.name === product.name && 
-        item.price === product.price && 
+      (item) =>
+        item.name === product.name &&
+        item.price === product.price.replace(/₹/g, "") &&
         item.website === product.website
     );
 
     if (existingItem) {
       setCartItems(
         cartItems.map((item) =>
-          item.name === product.name && 
-          item.price === product.price && 
+          item.name === product.name &&
+          item.price === product.price.replace(/₹/g, "") &&
           item.website === product.website
             ? { ...item, quantity: item.quantity + 1 }
             : item
@@ -77,10 +82,12 @@ function App() {
   const removeFromCart = (product) => {
     setCartItems(
       cartItems.filter(
-        (item) => 
-          !(item.name === product.name && 
-          item.price === product.price && 
-          item.website === product.website)
+        (item) =>
+          !(
+            item.name === product.name &&
+            item.price === product.price &&
+            item.website === product.website
+          )
       )
     );
   };
@@ -89,8 +96,8 @@ function App() {
     setCartItems(
       cartItems
         .map((item) =>
-          item.name === product.name && 
-          item.price === product.price && 
+          item.name === product.name &&
+          item.price === product.price &&
           item.website === product.website
             ? { ...item, quantity: item.quantity - 1 }
             : item
@@ -132,6 +139,7 @@ function App() {
         <Route path="/about" element={<AboutUs />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/backup" element={<Backup />} />
         <Route
           path="/signin"
           element={user ? <Navigate to="/" /> : <SignIn />}
@@ -139,6 +147,16 @@ function App() {
         <Route
           path="/signup"
           element={user ? <Navigate to="/" /> : <SignUp />}
+        />
+        <Route
+          path="/search"
+          element={
+            <SearchPage
+              addToCart={addToCart}
+              searchQuery={searchQuery}
+              selectedCategory={selectedCategory}
+            />
+          }
         />
         <Route
           path="/cart"

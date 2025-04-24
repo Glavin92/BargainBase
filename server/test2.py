@@ -4,34 +4,57 @@ from sklearn.metrics.pairwise import cosine_similarity
 import ast
 import random
 
-# Load your data
-df = pd.read_csv("C:/sem6-mini-project/amazon_flipkart_products.csv")
+# # Load your data
+# df = pd.read_csv("C:/sem6-mini-project/amazon_flipkart_products.csv")
 
 # Convert variants from string to list of dictionaries
-df['variants'] = df['variants'].apply(ast.literal_eval)
+# df['variants'] = df['variants'].apply(ast.literal_eval)
 
 # Print columns to verify
-print("Available columns:", df.columns.tolist())
+#print("Available columns:", df.columns.tolist())
 
-def generate_fake_ratings(product_ids, num_users=100):
-    """Generate synthetic user ratings for collaborative filtering"""
+def generate_fake_ratings(product_ids, num_users=None):
+    """Generate synthetic user ratings scaled to product count"""
+    if not product_ids:
+        return pd.DataFrame(columns=['user_id', 'product_id', 'rating'])
+    
+    num_products = len(product_ids)
+    
+    # Scale number of users based on product count
+    if num_users is None:
+        num_users = min(100, max(10, num_products * 2))  # 2 users per product, max 100
+    
     fake_data = []
+    
     for user_id in range(1, num_users + 1):
-        # Each user rates 5-15 random products
-        rated_products = random.sample(product_ids, k=random.randint(5, 15))
+        # Determine how many products this user will rate
+        # Base: 5-15 ratings, scaled by log of product count
+        base_min = 5
+        base_max = 15
+        scaled_min = min(base_min, num_products)
+        scaled_max = min(base_max, num_products)
+        
+        # Ensure we have at least 1 product to rate
+        if scaled_max <= 0:
+            continue
+            
+        num_ratings = random.randint(scaled_min, scaled_max)
+        rated_products = random.sample(product_ids, k=num_ratings)
+        
         for pid in rated_products:
             fake_data.append({
                 'user_id': f'user_{user_id}',
                 'product_id': pid,
                 'rating': round(random.uniform(3.0, 5.0), 1)  # Mostly positive ratings
             })
+    
     return pd.DataFrame(fake_data)
 
-# Generate fake ratings data
-product_ids = df['id'].dropna().unique().tolist()
-ratings_df = generate_fake_ratings(product_ids)
+# # Generate fake ratings data
+# product_ids = df['id'].dropna().unique().tolist()
+# ratings_df = generate_fake_ratings(product_ids)
 
-def collaborative_filtering_recommendations(ratings_df, product_df, target_user_id, top_n=10):
+def collaborative_filtering_recommendations(ratings_df, product_df, target_user_id, top_n=12):
     """
     Generate recommendations based on user similarity
     
@@ -141,7 +164,7 @@ def content_based_recommendations(product_df, product_id, n=5):
     
     return recommendations[['id', 'name', 'brand', 'price_display', 'avg_rating', 'similarity_score', 'thumbnail', 'website']]
 
-def hybrid_recommendations(product_df, ratings_df, product_id=None, user_id=None, top_n=10):
+def hybrid_recommendations(product_df, ratings_df, product_id=None, user_id=None, top_n=12):
     """
     Combine content-based and collaborative filtering
     
@@ -178,12 +201,12 @@ def hybrid_recommendations(product_df, ratings_df, product_id=None, user_id=None
     
     return hybrid_rec.head(top_n)
 
-# Example usage
-print("\nContent-based recommendations for 'mens-i-and-bata':")
-print(content_based_recommendations(df, 'mens-i-and-bata'))
+# # Example usage
+# print("\nContent-based recommendations for 'mens-i-and-bata':")
+# print(content_based_recommendations(df, 'mens-i-and-bata'))
 
-print("\nCollaborative recommendations for user_5:")
-print(collaborative_filtering_recommendations(ratings_df, df, 'user_5'))
+# print("\nCollaborative recommendations for user_5:")
+# print(collaborative_filtering_recommendations(ratings_df, df, 'user_5'))
 
-print("\nHybrid recommendations for user_10 viewing 'mens-i-and-bata':")
-print(hybrid_recommendations(df, ratings_df, product_id="mens-i-and-bata", user_id='user_10'))
+# print("\nHybrid recommendations for user_10 viewing 'mens-i-and-bata':")
+# print(hybrid_recommendations(df, ratings_df, product_id="mens-i-and-bata", user_id='user_10'))
