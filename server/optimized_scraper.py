@@ -240,6 +240,110 @@ def flipkart_scraper(query, max_pages=1):
         print(f"Error in flipkart_scraper: {str(e)}")
         return []
 
+# Scrape JioMart using Selenium
+def jiomart_scraper(query, max_pages=1):
+    try:
+        driver = setup_driver()
+        products = []
+
+        for page in range(1, max_pages + 1):
+            try:
+                # Use JioMart search endpoint pattern
+                encoded = query.replace(' ', '+')
+                url = f"https://www.jiomart.com/search?q={encoded}"
+                print(f"\n🔍 Scraping JioMart page {page}...")
+                driver.get(url)
+
+                # Wait for products to load
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "li.ais-InfiniteHits-item"))
+                )
+
+                tiles = driver.find_elements(By.CSS_SELECTOR, "li.ais-InfiniteHits-item.jm-col-4.jm-mt-base, li.ais-InfiniteHits-item")
+
+                for tile in tiles:
+                    try:
+                        # Name
+                        try:
+                            name_el = tile.find_element(By.CSS_SELECTOR, ".plp-card-details-name, a.plp-card-wrapper")
+                            name = (name_el.get_attribute("title") or name_el.text or "").strip()
+                        except Exception:
+                            continue
+
+                        # Price
+                        try:
+                            price_el = tile.find_element(By.CSS_SELECTOR, ".plp-card-details-price span.jm-heading-xxs, .plp-card-details-price span")
+                            price_text = (price_el.text or "").strip()
+                            if price_text and not price_text.startswith("₹") and any(ch.isdigit() for ch in price_text):
+                                price_text = "₹" + price_text
+                        except Exception:
+                            price_text = "Not Available"
+
+                        # Rating not usually present on PLP
+                        rating = "Not Rated"
+
+                        ratings_count = "0"
+
+                        # Link (make absolute)
+                        try:
+                            link_el = tile.find_element(By.CSS_SELECTOR, "a.plp-card-wrapper, a")
+                            href = (link_el.get_attribute("href") or "").strip()
+                            if href and href.startswith("/"):
+                                link = f"https://www.jiomart.com{href}"
+                            else:
+                                link = href or "no link found"
+                        except Exception:
+                            link = "no link found"
+
+                        # Thumbnail (avoid default placeholders; prefer data-src)
+                        try:
+                            img_el = tile.find_element(By.CSS_SELECTOR, ".plp-card-image img, img")
+                            src = (img_el.get_attribute("src") or "").strip()
+                            data_src = (img_el.get_attribute("data-src") or "").strip()
+                            thumbnail = data_src or src
+                            if not thumbnail or "jiomart-default-image" in thumbnail:
+                                srcset = (img_el.get_attribute("data-srcset") or img_el.get_attribute("srcset") or "").strip()
+                                if srcset:
+                                    parts = [p.strip() for p in srcset.split(",") if p.strip()]
+                                    if parts:
+                                        last = parts[-1].split()[0]
+                                        thumbnail = last
+                        except Exception:
+                            thumbnail = ""
+
+                        # Brand from data attribute if available
+                        try:
+                            manu = tile.find_element(By.CSS_SELECTOR, ".gtmEvents").get_attribute("data-manu")
+                            brand = (manu or name.split()[0]).strip() if manu is not None else (name.split()[0] if name else "Unknown Brand")
+                        except Exception:
+                            brand = name.split()[0] if name else "Unknown Brand"
+
+                        products.append({
+                            "name": name,
+                            "price": price_text,
+                            "rating": rating,
+                            "ratings": ratings_count,
+                            "brand": brand,
+                            "website": "JioMart",
+                            "link": link,
+                            "thumbnail": thumbnail
+                        })
+                        # print(products)
+                    except Exception as e:
+                        print(f"Error extracting JioMart product: {str(e)}")
+                        continue
+
+                print(f"✅ Scraped JioMart page {page}...")
+            except Exception as e:
+                print(f"Error scraping JioMart page {page}: {str(e)}")
+                break
+
+        driver.quit()
+        return products
+    except Exception as e:
+        print(f"Error in jiomart_scraper: {str(e)}")
+        return []
+
 # Extract Flipkart ratings using requests
 def flipkart_rating(url):
     driver = setup_driver()

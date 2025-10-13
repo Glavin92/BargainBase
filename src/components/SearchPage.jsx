@@ -33,6 +33,8 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [allBrands, setAllBrands] = useState([]);
+  const [selectedWebsites, setSelectedWebsites] = useState([]);
+  const [allWebsites, setAllWebsites] = useState([]);
   const ITEMS_PER_PAGE = 12;
 
   // Extract all unique brands from products
@@ -40,6 +42,18 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
     if (products.length > 0) {
       const brands = [...new Set(products.map((product) => product.brand))];
       setAllBrands(brands);
+      const websiteSets = products.map((p) =>
+        Array.isArray(p.available_on)
+          ? p.available_on
+          : p.website
+          ? [p.website]
+          : []
+      );
+      const websites = [...new Set(websiteSets.flat().filter(Boolean))];
+      setAllWebsites(websites);
+    } else {
+      setAllBrands([]);
+      setAllWebsites([]);
     }
   }, [products]);
 
@@ -69,8 +83,26 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
       );
     }
 
+    // Website filter
+    if (selectedWebsites.length > 0) {
+      filtered = filtered.filter((product) => {
+        const sites = Array.isArray(product.available_on)
+          ? product.available_on
+          : product.website
+          ? [product.website]
+          : [];
+        return sites.some((s) => selectedWebsites.includes(s));
+      });
+    }
+
     return filtered;
-  }, [products, selectedCategory, priceRange, selectedBrands]);
+  }, [
+    products,
+    selectedCategory,
+    priceRange,
+    selectedBrands,
+    selectedWebsites,
+  ]);
   // Fetch products from Flask backend
   const fetchProducts = async (query) => {
     try {
@@ -254,6 +286,14 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
+  // Handle website selection
+  const toggleWebsiteSelection = (site) => {
+    setSelectedWebsites((prev) =>
+      prev.includes(site) ? prev.filter((s) => s !== site) : [...prev, site]
+    );
+    setCurrentPage(1);
+  };
+
   // Handle price range change
   const handlePriceChange = (event, newValue) => {
     setPriceRange(newValue);
@@ -379,6 +419,30 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
                       className="ml-2 text-gray-700"
                     >
                       {brand}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Website Filter */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Websites</h3>
+              <div className="max-h-60 overflow-y-auto">
+                {allWebsites.map((site) => (
+                  <div key={site} className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      id={`site-${site}`}
+                      checked={selectedWebsites.includes(site)}
+                      onChange={() => toggleWebsiteSelection(site)}
+                      className="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    />
+                    <label
+                      htmlFor={`site-${site}`}
+                      className="ml-2 text-gray-700"
+                    >
+                      {site}
                     </label>
                   </div>
                 ))}
@@ -537,10 +601,6 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
 
       {/* Recommendations Section */}
       <div className="p-8 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-          Recommended for You
-        </h2>
-
         {recommendationsLoading ? (
           <div className="flex justify-center items-center h-64">
             <FaSpinner className="animate-spin text-orange-500 text-4xl" />
@@ -598,9 +658,7 @@ const SearchPage = ({ addToCart, searchQuery, selectedCategory }) => {
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-500">
-            No recommendations available at the moment.
-          </p>
+          <p className="text-center text-gray-500"></p>
         )}
       </div>
 

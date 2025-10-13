@@ -1,9 +1,11 @@
-from optimized_scraper import scrape_amazon_selenium, flipkart_scraper, merge_products_for_display, amazon_ratings, flipkart_rating, save_to_csv
+from optimized_scraper import scrape_amazon_selenium, flipkart_scraper, merge_products_for_display, amazon_ratings, flipkart_rating, save_to_csv, jiomart_scraper
 from flask import Flask, request, jsonify
 import multiprocessing
 from flask_cors import CORS
 import pandas as pd
 from test2 import collaborative_filtering_recommendations, content_based_recommendations, hybrid_recommendations
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import ast
 import os
 import json
@@ -60,7 +62,7 @@ def load_or_create_dataframe(filepath):
             return pd.DataFrame(columns=REQUIRED_PRODUCT_COLUMNS)
             
         # Read CSV with error handling
-        df = pd.read_csv(filepath)
+        df = pd.read_csv(filepath, on_bad_lines='skip')
         
         # Skip empty DataFrames
         if df.empty:
@@ -140,10 +142,40 @@ def search():
         if not query:
             return jsonify({"error": "Please enter a search term"}), 400
 
-        with multiprocessing.Pool(processes=2) as pool:
-            results = pool.starmap(run_scraper, [("amazon", query), ("flipkart", query)])
+        with multiprocessing.Pool(processes=3) as pool:
+            results = pool.starmap(run_scraper, [("amazon", query), ("flipkart", query), ("jiomart", query)])
 
-        merged = merge_products_for_display(results[0] + results[1])
+        merged = merge_products_for_display(results[0] + results[1] + results[2])
+
+        # Rank results by TF-IDF cosine similarity of textual fields
+        try:
+            def build_doc_text(p):
+                name = str(p.get('name', '') or '')
+                brand = str(p.get('brand', '') or '')
+                price = str(p.get('price_display', '') or '')
+                rating = str(p.get('avg_rating', '') or '')
+                variants = p.get('variants', []) or []
+                variant_bits = []
+                for v in variants:
+                    try:
+                        bits = [str(v.get('website', ''))]
+                        if v.get('color'):
+                            bits.append(str(v.get('color')))
+                        variant_bits.append(' '.join([b for b in bits if b]))
+                    except Exception:
+                        continue
+                variant_text = ' '.join(variant_bits)
+                return ' '.join([name, brand, price, rating, variant_text]).strip()
+
+            corpus = [build_doc_text(p) for p in merged]
+            vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 2), sublinear_tf=True)
+            doc_matrix = vectorizer.fit_transform(corpus)
+            query_vec = vectorizer.transform([query])
+            sims = cosine_similarity(doc_matrix, query_vec).ravel()
+            ranked = sorted(zip(merged, sims), key=lambda x: x[1], reverse=True)
+            merged = [p for p, _ in ranked]
+        except Exception as e:
+            print(f"TF-IDF ranking error: {str(e)}")
         global current_search_results
         current_search_results = merged.copy()
         
@@ -289,6 +321,8 @@ def run_scraper(scraper_func_name, query):
             return scrape_amazon_selenium(query)
         elif scraper_func_name == "flipkart":
             return flipkart_scraper(query)
+        elif scraper_func_name == "jiomart":
+            return jiomart_scraper(query)
         return []
     except Exception as e:
         print(f"Scraper {scraper_func_name} failed: {str(e)}")

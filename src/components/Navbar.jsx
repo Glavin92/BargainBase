@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import bargainBase from "../assets/bargainBase.png";
@@ -11,6 +11,8 @@ import {
   FaTruck,
   FaRegUser,
   FaChevronDown,
+  FaHistory,
+  FaTimes,
 } from "react-icons/fa";
 import { FiSmartphone, FiShoppingCart } from "react-icons/fi";
 import { VscSearch } from "react-icons/vsc";
@@ -122,7 +124,23 @@ const Navbar = ({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const navigate = useNavigate();
+  const searchRef = useRef(null);
+
+  // Handle clicks outside the search area
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchFocused(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Debounced search function
   const debouncedSearch = debounce((query) => {
@@ -147,7 +165,8 @@ const Navbar = ({
     setSearchQuery(e.target.value);
   };
 
-  const handleSearchInputClick = () => {
+  const handleSearchInputFocus = () => {
+    setIsSearchFocused(true);
     navigate("/search");
   };
 
@@ -156,9 +175,10 @@ const Navbar = ({
       if (!searchHistory.includes(searchQuery)) {
         setSearchHistory((prev) => [searchQuery, ...prev].slice(0, 5));
       }
-      onSearch(searchQuery.trim()); // Call the search callback if needed
+      onSearch(searchQuery.trim());
+      setIsSearchFocused(false);
     } else {
-      navigate("/search"); // Navigate even if empty query
+      navigate("/search");
     }
   };
 
@@ -168,11 +188,16 @@ const Navbar = ({
     }
   };
 
-  const handleLogoClick = () => {
-    e.preventDefault(); // Prevent default link behavior
-    setSearchQuery(""); // Clear the search query
-    onSearch(""); // Clear any active search results
-    navigate("/"); // Navigate to home
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    setSearchQuery("");
+    onSearch("");
+    navigate("/");
+  };
+
+  const removeFromHistory = (queryToRemove, e) => {
+    e.stopPropagation();
+    setSearchHistory(searchHistory.filter((query) => query !== queryToRemove));
   };
 
   return (
@@ -215,14 +240,17 @@ const Navbar = ({
           </Link>
 
           {/* Search Bar */}
-          <div className="w-full md:w-1/2 lg:w-1/3 relative mb-4 md:mb-0">
+          <div
+            ref={searchRef}
+            className="w-full md:w-1/2 lg:w-1/3 relative mb-4 md:mb-0"
+          >
             <div className="flex items-center border-2 border-orange-500 rounded-lg overflow-hidden">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyPress={handleKeyPress}
-                onClick={handleSearchInputClick}
+                onFocus={handleSearchInputFocus}
                 placeholder="Search for products..."
                 className="w-full px-4 py-2.5 focus:outline-none"
               />
@@ -234,21 +262,40 @@ const Navbar = ({
               </button>
             </div>
 
-            {/* Search History */}
-            {searchHistory.length > 0 && (
-              <div className="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded-b-lg z-50">
+            {/* Search History - Google-like dropdown */}
+            {isSearchFocused && searchHistory.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded-lg z-50 border border-gray-200">
+                <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100 flex items-center">
+                  <FaHistory className="mr-2" /> Recent searches
+                </div>
                 {searchHistory.map((query, index) => (
                   <div
                     key={index}
                     onClick={() => {
                       setSearchQuery(query);
                       onSearch(query);
+                      setIsSearchFocused(false);
                     }}
-                    className="px-4 py-2 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
                   >
-                    {query}
+                    <div className="flex items-center">
+                      <VscSearch className="text-gray-400 mr-2" />
+                      <span>{query}</span>
+                    </div>
+                    <button
+                      onClick={(e) => removeFromHistory(query, e)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FaTimes className="text-sm" />
+                    </button>
                   </div>
                 ))}
+                <div
+                  className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 cursor-pointer text-right"
+                  onClick={() => setSearchHistory([])}
+                >
+                  Clear all
+                </div>
               </div>
             )}
           </div>
